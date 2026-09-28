@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="bn">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Online Exam</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,"Noto Sans Bengali",sans-serif;background:#f3f6fb;color:#172033}
+header{background:#2563eb;color:white;padding:18px;text-align:center}
+.container{max-width:720px;margin:22px auto;padding:0 14px}.card{background:white;border-radius:16px;padding:20px;margin-bottom:16px;box-shadow:0 5px 20px #00000010}
+button{border:0;border-radius:10px;padding:12px 16px;background:#2563eb;color:#fff;font-size:16px;cursor:pointer;margin:4px}
+button.secondary{background:#64748b}.danger{background:#dc2626}
+input,textarea,select{width:100%;padding:12px;margin:7px 0 12px;border:1px solid #ccd4e0;border-radius:9px;font-size:16px}
+.option{display:block;padding:13px;border:1px solid #dbe2ea;border-radius:10px;margin:9px 0;cursor:pointer}
+.option:hover{background:#f1f5ff}.hidden{display:none}.score{font-size:30px;font-weight:800;text-align:center}
+.small{color:#64748b;font-size:14px}.top{display:flex;justify-content:space-between;gap:10px;align-items:center}
+.badge{background:#e0edff;color:#1d4ed8;padding:6px 10px;border-radius:99px;font-weight:700}
+.question{font-weight:700;font-size:18px;line-height:1.5}
+.correct{background:#dcfce7!important;border-color:#22c55e!important}.wrong{background:#fee2e2!important;border-color:#ef4444!important}
+</style>
+</head>
+<body>
+<header><h1>📚 My Online Exam</h1><div>অনলাইন MCQ পরীক্ষা</div></header>
+<div class="container">
+
+<div id="home" class="card">
+<h2>পরীক্ষা শুরু করুন</h2>
+<p class="small">Teacher: নতুন পরীক্ষা তৈরি করুন। Student: Exam Code দিয়ে পরীক্ষায় যোগ দিন।</p>
+<button onclick="show('teacher')">👨‍🏫 Teacher Panel</button>
+<button onclick="show('join')" class="secondary">👨‍🎓 Student Join</button>
+</div>
+
+<div id="teacher" class="card hidden">
+<div class="top"><h2>Teacher Panel</h2><button class="secondary" onclick="show('home')">Home</button></div>
+<label>পরীক্ষার নাম</label><input id="examTitle" placeholder="যেমন: বাংলা ১ম পত্র">
+<label>সময় (মিনিট)</label><input id="examMinutes" type="number" value="20" min="1">
+<div id="questions"></div>
+<button onclick="addQuestion()">➕ প্রশ্ন যোগ করুন</button>
+<button onclick="createExam()">🚀 Exam তৈরি করুন</button>
+<div id="created" class="card hidden"></div>
+</div>
+
+<div id="join" class="card hidden">
+<div class="top"><h2>Student Join</h2><button class="secondary" onclick="show('home')">Home</button></div>
+<label>শিক্ষার্থীর নাম</label><input id="studentName" placeholder="আপনার নাম">
+<label>Exam Code</label><input id="examCode" placeholder="যেমন: ABC123">
+<button onclick="startExam()">পরীক্ষা শুরু</button>
+<p class="small">Demo সংস্করণে ডাটা এই ব্রাউজারেই সংরক্ষিত হয়।</p>
+</div>
+
+<div id="exam" class="hidden">
+<div class="card">
+<div class="top"><strong id="liveTitle"></strong><span class="badge" id="timer">00:00</span></div>
+<div id="quiz"></div>
+<button onclick="submitExam()">✅ Submit Exam</button>
+</div>
+</div>
+
+<div id="result" class="card hidden"></div>
+</div>
+
+<script>
+let questions=[], exam=null, timerInt=null, startTime=0;
+const $=id=>document.getElementById(id);
+function show(id){['home','teacher','join','exam','result'].forEach(x=>$(x).classList.add('hidden'));$(id).classList.remove('hidden')}
+function addQuestion(data={}) {
+ const i=questions.length;
+ questions.push(data);
+ const d=document.createElement('div'); d.className='card'; d.id='q'+i;
+ d.innerHTML=`<h3>প্রশ্ন ${i+1}</h3>
+ <input class="qt" placeholder="প্রশ্ন লিখুন">
+ <input class="op" placeholder="অপশন A"><input class="op" placeholder="অপশন B">
+ <input class="op" placeholder="অপশন C"><input class="op" placeholder="অপশন D">
+ <label>সঠিক উত্তর</label><select class="ans"><option value="0">A</option><option value="1">B</option><option value="2">C</option><option value="3">D</option></select>
+ <button class="danger" onclick="this.parentElement.remove()">মুছে ফেলুন</button>`;
+ $('questions').appendChild(d);
+}
+addQuestion();
+
+function createExam(){
+ const blocks=[...document.querySelectorAll('#questions .card')];
+ const qs=[];
+ for(const b of blocks){
+  const text=b.querySelector('.qt').value.trim();
+  const ops=[...b.querySelectorAll('.op')].map(x=>x.value.trim());
+  const ans=+b.querySelector('.ans').value;
+  if(!text || ops.some(x=>!x)){alert('সব প্রশ্ন ও ৪টি অপশন পূরণ করুন।');return}
+  qs.push({text,ops,ans});
+ }
+ if(!qs.length){alert('কমপক্ষে ১টি প্রশ্ন দিন।');return}
+ const code=Math.random().toString(36).slice(2,8).toUpperCase();
+ exam={title:$('examTitle').value.trim()||'অনলাইন পরীক্ষা',minutes:+$('examMinutes').value||20,code,questions:qs};
+ localStorage.setItem('exam_'+code,JSON.stringify(exam));
+ $('created').classList.remove('hidden');
+ $('created').innerHTML=`<h3>🎉 Exam তৈরি হয়েছে!</h3><p>শিক্ষার্থীদের এই Code দিন:</p><div class="score">${code}</div><p class="small">এই Demo-তে একই ব্রাউজারে সংরক্ষিত থাকবে।</p>`;
+}
+
+function startExam(){
+ const name=$('studentName').value.trim();
+ const code=$('examCode').value.trim().toUpperCase();
+ if(!name||!code){alert('নাম ও Exam Code দিন।');return}
+ const raw=localStorage.getItem('exam_'+code);
+ if(!raw){alert('Exam Code পাওয়া যায়নি।');return}
+ exam=JSON.parse(raw); exam.student=name; show('exam');
+ $('liveTitle').textContent=exam.title+' — '+name;
+ $('quiz').innerHTML=exam.questions.map((q,i)=>`<div class="card"><div class="question">${i+1}. ${esc(q.text)}</div>
+ ${q.ops.map((o,j)=>`<label class="option"><input type="radio" name="q${i}" value="${j}"> ${String.fromCharCode(65+j)}. ${esc(o)}</label>`).join('')}</div>`).join('');
+ startTime=Date.now(); let left=exam.minutes*60;
+ const tick=()=>{let m=Math.floor(left/60),s=left%60;$('timer').textContent=`${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;if(left<=0){clearInterval(timerInt);submitExam();}left--};
+ tick();timerInt=setInterval(tick,1000);
+}
+function submitExam(){
+ if(timerInt) clearInterval(timerInt);
+ let correct=0, answered=0;
+ exam.questions.forEach((q,i)=>{const el=document.querySelector(`input[name="q${i}"]:checked`);if(el){answered++;if(+el.value===q.ans)correct++;}});
+ const total=exam.questions.length;
+ $('result').innerHTML=`<h2>📊 আপনার ফলাফল</h2><p class="score">${correct} / ${total}</p>
+ <p style="text-align:center">সঠিক: <b>${correct}</b> &nbsp; ভুল: <b>${answered-correct}</b> &nbsp; উত্তর দেওয়া হয়নি: <b>${total-answered}</b></p>
+ <hr><h3>সঠিক উত্তর</h3>${exam.questions.map((q,i)=>`<div class="card"><b>${i+1}. ${esc(q.text)}</b><br>সঠিক উত্তর: <b>${String.fromCharCode(65+q.ans)}. ${esc(q.ops[q.ans])}</b></div>`).join('')}
+ <button onclick="show('home')">আবার শুরু</button>`;
+ show('result');
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+</body>
+</html>
